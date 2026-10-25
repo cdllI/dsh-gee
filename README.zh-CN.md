@@ -74,8 +74,13 @@ sh tools/bootstrap.sh        # Windows: powershell -File tools\bootstrap.ps1
 ### 2. 登录
 
 ```bash
-.venv/bin/earthengine authenticate
+.venv/bin/earthengine authenticate --auth_mode localhost
+# Windows: .venv\Scripts\earthengine.exe authenticate --auth_mode localhost
 ```
+
+**`--auth_mode localhost` 不能省。** 客户端默认的 redirect 是 `urn:ietf:wg:oauth:2.0:oob`，这个 OAuth 流程
+Google 在 2022 年就停用了，授权页会直接返回 `Error 400: invalid_request`。localhost 模式会在 8085 端口起一个
+本地回调服务，这是目前唯一还能用的流程。8085 被占用时用 `--auth_mode localhost:0`（自动选端口）。
 
 这一步把 refresh token 写到 `~/.config/earthengine/credentials`。插件会自己刷新 access token，
 所以只需要做一次。之后如果 token 被撤销，`gee_status` 会报出来，重新跑一遍即可。

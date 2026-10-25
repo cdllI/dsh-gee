@@ -78,8 +78,14 @@ sh tools/bootstrap.sh        # Windows: powershell -File tools\bootstrap.ps1
 ### 2. Authenticate
 
 ```bash
-.venv/bin/earthengine authenticate
+.venv/bin/earthengine authenticate --auth_mode localhost
+# Windows: .venv\Scripts\earthengine.exe authenticate --auth_mode localhost
 ```
+
+**`--auth_mode localhost` is not optional.** The client's default redirect is `urn:ietf:wg:oauth:2.0:oob`,
+an OAuth flow Google retired in 2022; the consent page answers `Error 400: invalid_request`. The localhost
+mode starts a local callback server on port 8085 instead, and that is the only flow that still works. Use
+`--auth_mode localhost:0` if 8085 is taken.
 
 This writes a refresh token to `~/.config/earthengine/credentials`. The plugin refreshes access tokens
 itself, so you do this once. If the token is later revoked, `gee_status` says so and you re-run the

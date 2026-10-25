@@ -27,5 +27,5 @@ Write-Host "installing earthengine-api from $Index"
 
 Write-Host ''
 Write-Host "next: authenticate and write the config"
-Write-Host "  $(Join-Path $Venv 'Scripts\earthengine.exe') authenticate"
+Write-Host "  $(Join-Path $Venv 'Scripts\earthengine.exe') authenticate --auth_mode localhost"
 Write-Host '  copy dsh-gee/gee.config.example.json to dsh-gee/gee.config.json and fill it in'

@@ -21,5 +21,5 @@ fi
 
 echo
 echo "next: authenticate and write the config"
-echo "  $VENV/bin/earthengine authenticate"
+echo "  $VENV/bin/earthengine authenticate --auth_mode localhost"
 echo "  cp dsh-gee/gee.config.example.json dsh-gee/gee.config.json  # then fill it in"
