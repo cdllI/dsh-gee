@@ -42,6 +42,8 @@ over the file.
   half.
 - `worker.py` → stop the running worker process (the interpreter from `python`) so the next call spawns
   the new code; the Host half does not need a reload for worker-only changes.
+- `skill.md` → read once in `apply()`, so the content only changes after the plugin is re-applied.
+  `set_bundle` on an already-enabled bundle does not re-run `apply`; toggle it off and on.
 
 ## Traps worth remembering
 

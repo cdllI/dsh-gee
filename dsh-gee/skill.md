@@ -1,67 +1,123 @@
-# Earth Engine workflows
+# Google Earth Engine
 
-Use the `gee_*` tools. Every snippet is Python with `ee` in scope and the value left in `result` is
-returned as JSON, so a call looks like:
+Use the `gee_*` tools. Every snippet is **Python** executed in a persistent worker with `ee` already in
+scope; the value you assign to `result` comes back as JSON. Never `import ee` and never pass a callback.
 
 ```python
 col = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterDate("2024-06-01", "2024-07-01")
-result = col.size()
+result = col.size()          # -> 42
 ```
 
-## 1. Find the dataset first
+When anything fails, call `gee_status` first. It separates bad credentials, a missing project, an
+unreachable proxy and a dead worker in one call.
 
-Never guess a collection id. Search the catalog, then read the returned `id` verbatim:
+## Pick the tool
+
+| Situation | Tool |
+|---|---|
+| Do not know the collection id | `gee_catalog` |
+| Need a number, table or JSON | `gee_eval` |
+| Need to see an image | `gee_preview` |
+| Need the image on the interactive map | `gee_layer` |
+| Need a local file | `gee_download` |
+| Need a big, repeatable job | `gee_export` then `gee_tasks` |
+| Need to inspect or clean assets | `gee_assets` |
+| Anything is broken | `gee_status` |
+
+## Datasets
+
+Never guess a collection id from memory. Search, then copy the returned `id` verbatim:
 
 ```
 gee_catalog query="sentinel-2 surface reflectance" type=image_collection limit=5
 ```
 
-The first call builds an index (60-90 s); later calls are instant for a week.
+The first call builds the index (60-90 s); later calls are instant for a week. Common ids worth
+confirming once and reusing: `COPERNICUS/S2_SR_HARMONIZED`, `LANDSAT/LC09/C02/T1_L2`,
+`MODIS/061/MOD13A1`, `MODIS/061/MOD11A2`, `USGS/SRTMGL1_003`, `NASA/NASADEM_HGT/001`.
 
-## 2. Analysis
+Boundaries: `FAO/GAUL/2025/level1` for provinces (`ADM1_NAME`, for example `Shanxi Sheng`),
+`FAO/GAUL/2025/level2` for cities (`ADM2_NAME`), or a table asset under `projects/<project>/assets`.
 
-- Scale matters: provincial statistics at 500-1000 m, field-scale at 10-30 m. Always pass `scale` to
-  `reduceRegion`, and `maxPixels` above roughly 1e9 for anything continental.
-- Mask clouds before compositing (`CLOUDY_PIXEL_PERCENTAGE`, `QA60`, or `GOOGLE/CLOUD_SCORE_PLUS`).
-- Boundaries come from `FAO/GAUL/2025/level2` (city) or `level1` (province, e.g. `Shanxi Sheng`),
-  or from an asset under `projects/<project>/assets`.
+## Conventions
 
-## 3. Show it
+- `region=[west, south, east, north]` in degrees, in every tool that takes a region.
+- `scale` is metres per pixel: 500-1000 for provincial statistics, 10-30 for field work.
+- Always pass `scale` and a `maxPixels` above about `1e9` to `reduceRegion`.
+- `bands` is an RGB order list; single-band products take `palette` instead.
+- Map layers are in memory: they disappear when the app restarts. Export what matters.
+- `gee_preview` and `gee_layer` need an `ee.Image` in `result`; call `.mosaic()` or `.first()` on a
+  collection first.
+
+## Recipes
+
+**Provincial statistic**
+
+```python
+adm = ee.FeatureCollection("FAO/GAUL/2025/level1").filter(ee.Filter.eq("ADM1_NAME", "Shanxi Sheng")).first().geometry()
+col = ee.ImageCollection("MODIS/061/MOD13A1").filterDate("2024-01-01", "2025-01-01").select("NDVI")
+mm = col.mean().multiply(0.0001).reduceRegion(ee.Reducer.mean(), adm, 500, maxPixels=int(1e9))
+result = mm.getInfo()
+```
+
+Then preview or layer the same image:
+
+```python
+result = col.mean().multiply(0.0001).clip(adm)
+# gee_preview: palette=["#a6611a","#d8b365","#f5f5c3","#c7eae5","#5ab4ac","#1a7f4b"], min=0.05, max=0.9
+```
+
+**True colour**
+
+```python
+result = col.median().select(["B4", "B3", "B2"])
+# gee_preview: bands=["B4","B3","B2"], min=0, max=3000, region=[116.2,39.8,116.6,40.0], dimensions=900
+```
+
+**Boundary-clipped download**
 
 ```
-gee_preview code=<image expression> bands=["B4","B3","B2"] min=0 max=3000 region=[w,s,e,n] dimensions=768
+gee_download code=<image expression> region=[...] scale=500 clipAsset="projects/<project>/assets/<table>"
 ```
 
-The snippet must leave an `ee.Image` in `result` (call `.mosaic()` or `.first()` on a collection).
-Single-band products take `palette`. A preview writes a PNG to `previews/` and shows it in the chat.
+`clipAsset` clips locally and declares `GDAL_NODATA`. Do not write `image.clip(geom)` and expect the
+mask in the file: Earth Engine drops it during GeoTIFF download.
 
-To put the same image on the interactive map panel, call `gee_layer action=add` with the same code
-and visualisation arguments. Layers are in-memory and vanish when the app restarts.
+**Large area**
 
-## 4. Get the data out
+```
+gee_download code=<...> region=[...] scale=10 chunked=true chunkPixels=2048
+```
 
-| Need | Tool |
-|---|---|
-| A local file, small (under about 32 MB) | `gee_download` |
-| Something large (province at 10 m) | `gee_download chunked=true chunkPixels=2048`, or `gee_export` |
-| A boundary-clipped raster | `gee_download clipAsset="projects/<project>/assets/<table>"` |
-| A repeatable task in Drive or as an asset | `gee_export destination=drive|asset` |
+Each tile is fetched on one shared affine grid and mosaicked locally, so the result is seamless. The
+mosaic uses a mid-latitude degree grid and is therefore not pixel-identical to Earth Engine's own
+download grid; do not mix the two in a pixel-wise comparison. `chunked` and `clipAsset` cannot be
+combined.
 
-`gee_download` writes into `exports/` and always declares `GDAL_NODATA`. `clipAsset` clips locally:
-Earth Engine drops the mask of `image.clip(geometry)` on GeoTIFF download, so never rely on it.
+**Batch export**
 
-Exports are asynchronous: `gee_export` returns a task id, `gee_tasks action=list` shows progress.
+```
+gee_export code=<...> description="shanxi-ndvi-2024" destination=asset
+  assetId="projects/<project>/assets/shanxi_ndvi_2024" region=[...] scale=500
+```
 
-## 5. Assets
-
-`gee_assets action=list` (defaults to `projects/<project>/assets`), `info`, `move`, `delete`.
-Deletion is irreversible; list first and confirm the exact id.
+Returns a task id immediately. Poll with `gee_tasks action=list` (or `action=status task_id=...`).
+Exports are asynchronous and can take minutes; do not block on them.
 
 ## Pitfalls
 
-- A download larger than about 32 MB fails at the request, not in the file. Use `chunked`.
-- Chunked mosaics use a mid-latitude degree grid, so they are not pixel-identical to Earth Engine's own
-  download grid; do not mix the two in a pixel-wise comparison.
-- `clipAsset` and `chunked` cannot be combined.
-- If a call fails, run `gee_status` first: it distinguishes bad credentials, a missing project and an
-  unreachable proxy.
+| Symptom | Cause and fix |
+|---|---|
+| `no project found` | Pass a project id, or set it in `gee.config.json`. |
+| `Please authorize access` | The refresh token is gone. Re-run `earthengine authenticate`. |
+| A call times out | Proxy unreachable. `gee_status` shows what the worker actually received. |
+| Download fails immediately | The request is over Earth Engine's ~32 MB synchronous limit. Use `chunked`. |
+| Clipped raster is all white in QGIS | No `GDAL_NODATA` in the file. Use `clipAsset`, not `image.clip()`. |
+| Mosaic has visible seams | Should not happen; if it does, the chunks did not share one affine. |
+| `Refusing ...: approval rejected` | The session approval policy denied a destructive call. Ask the human. |
+| Map blank but layers listed | The browser cannot reach `earthengine.googleapis.com`; the Host is fine. |
+
+## Assets
+
+`gee_assets action=list` defaults to `projects/<project>/assets`, `info` returns bands and size without
+the footprint, `move` renames, `delete` is irreversible. List first, confirm the exact id, then delete.
