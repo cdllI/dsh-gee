@@ -73,6 +73,9 @@ DSH 自带 Python 3.12 运行时，所以**不需要手动装任何东西**。�
 （插件旁边有 `wheels/` 目录时全程离线）、写 `gee.config.json`、返回浏览器授权链接。
 你只需要点一次「允许」、给一次项目号。
 
+想完全离线安装，从 [releases 页](https://github.com/cdllI/dsh-gee/releases) 下载 `wheels-win-x64.zip`，
+解压到 `index.js` 旁边形成 `wheels/*.whl`；`gee_setup` 就会用这些文件，不再访问包索引。
+
 下面的手动步骤用于排查问题，或没有发布 wheelhouse 的平台。
 
 ### 1. 准备一个装了 Earth Engine 的 Python

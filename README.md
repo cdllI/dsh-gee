@@ -80,6 +80,10 @@ It finds the Harness runtime, builds a private virtual environment, installs `ea
 and `matplotlib` (offline when a `wheels/` directory sits next to the plugin), writes `gee.config.json`,
 and returns the browser link. You only approve the consent screen and give it your project id.
 
+To install with no network access at all, download `wheels-win-x64.zip` from the
+[releases page](https://github.com/cdllI/dsh-gee/releases) and unpack it so that `wheels/*.whl` sits next
+to `index.js`; `gee_setup` installs from those files instead of a package index.
+
 The manual steps below are for debugging, or for platforms without a published wheelhouse.
 
 ### 1. Get a Python with Earth Engine
