@@ -10,19 +10,15 @@ handled once rather than per call.
 
 ## Quickstart
 
-You do not have to configure anything by hand.
-
-```bash
-git clone https://github.com/cdllI/dsh-gee.git
-```
+If you do not have DeepSeek Harness yet, install it first: <https://www.deepseek.com/harness/>.
 
 Then send your agent one line:
 
-> Install the `dsh-gee` plugin from `./dsh-gee` and connect it to my Earth Engine account.
+> Install the plugin from https://github.com/cdllI/dsh-gee and connect it to my Earth Engine account.
 
 The agent has shell access, so it does the setup end to end:
 
-1. installs the bundle (plugin manager, `install_bundle` with the directory path)
+1. clones the repository and installs the bundle (`install_bundle` with its `dsh-gee/` directory)
 2. creates a virtual environment and installs `earthengine-api` into it
 3. runs `earthengine authenticate` and gives you the browser link
 4. writes `dsh-gee/gee.config.json` — interpreter, project, proxy if your network needs one

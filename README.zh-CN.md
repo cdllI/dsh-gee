@@ -8,19 +8,15 @@ Python 分析、在地图面板上叠图层、批量导出、管理资产。整�
 
 ## 快速开始
 
-不需要你手动配置。
-
-```bash
-git clone https://github.com/cdllI/dsh-gee.git
-```
+如果还没有装 DeepSeek Harness，先到这里装：<https://www.deepseek.com/harness/>。
 
 然后给 agent 发一句话：
 
-> 把 `./dsh-gee` 这个插件装上，并连上我的 Earth Engine 账号。
+> 安装 https://github.com/cdllI/dsh-gee 这个插件，并连上我的 Earth Engine 账号。
 
 agent 有 shell 权限，剩下的它自己会做完：
 
-1. 装 bundle（插件管理器 `install_bundle`，参数是目录路径）
+1. 把仓库克隆下来，装 bundle（`install_bundle`，参数是里面的 `dsh-gee/` 目录）
 2. 建虚拟环境，在里面装 `earthengine-api`
 3. 跑 `earthengine authenticate`，把浏览器授权链接给你
 4. 写 `dsh-gee/gee.config.json`——解释器、项目号，需要代理的话还有代理地址
