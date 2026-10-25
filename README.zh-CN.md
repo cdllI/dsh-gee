@@ -14,17 +14,19 @@ Python 分析、在地图面板上叠图层、批量导出、管理资产。整�
 
 > 安装 https://github.com/cdllI/dsh-gee 这个插件，并连上我的 Earth Engine 账号。
 
-agent 有 shell 权限，它会按这个顺序做完：
+这个地址是**一个 Git 仓库，不是 npm 包**——插件管理器不能直接吃它。它必须先克隆下来，然后把克隆里
+的 `dsh-gee/` 目录装成 bundle。agent 会按这个顺序做完：
 
-1. **克隆 + 安装**：`git clone https://github.com/cdllI/dsh-gee`，然后 `install_bundle`，参数是 `dsh-gee/`
-   的绝对路径（改的是 profile，需要一次完全权限的审批）
-2. **建环境**：Windows 用 `powershell -File tools\bootstrap.ps1`，其他平台用 `sh tools/bootstrap.sh`
-   ——创建 `.venv` 并从镜像装 `earthengine-api`
-3. **授权**：`.venv\Scripts\earthengine.exe authenticate --auth_mode localhost`（POSIX 是
-   `.venv/bin/earthengine`）；它会打开浏览器，在 8085 端口接收回调。`--auth_mode` 这个参数是必须的，
-   原因见 [安装](#安装) 第 2 步
-4. **写配置**：`dsh-gee/gee.config.json`，填解释器绝对路径和项目号，需要代理时再加 `proxy`
-5. **验证**：调 `gee_status`，直到返回 `server round-trip: ok`
+1. **克隆**：`git clone https://github.com/cdllI/dsh-gee`。如果代理劫持了 GitHub：
+   `git -c http.proxy=http://127.0.0.1:7890 clone https://github.com/cdllI/dsh-gee`
+2. **装 bundle**：`install_bundle`，参数是 `<克隆目录>/dsh-gee` 的绝对路径。它改的是 profile，
+   需要一次完全权限的审批。**不要手工改 `cordis.patch.yml`**——缩进错一格整个 profile 就起不来
+3. **建环境**：`gee_setup action=install`——找到 DSH 自带的 Python，建私有虚拟环境，装
+   `earthengine-api`、`tifffile`、`matplotlib`
+4. **授权**：`gee_setup action=auth` 会打印浏览器链接。必须走 `--auth_mode localhost` 流程，
+   已经废弃的 out-of-band 流程会返回 `400 invalid_request`
+5. **配置 + 验证**：把 Cloud 项目号交给 `gee_setup action=verify`，它会顺便跑一次真实的
+   Earth Engine 往返
 
 你只需要做两件事：**在浏览器里点“允许”**，以及**告诉它你的 Cloud 项目 ID**。
 
@@ -141,8 +143,25 @@ USERPROFILE=/writable/dir .venv/bin/earthengine authenticate
 
 ### 4. 安装 bundle
 
-用 Harness 的插件管理器把这个目录装成 bundle（`install_bundle`，参数是 `dsh-gee/` 的绝对路径），
-或者在你的 profile patch 里加等价的一行。装完刷新页面，客户端那一半才会加载。
+`https://github.com/cdllI/dsh-gee` 是仓库，不是 npm 包——插件管理器不能直接装。必须先克隆，再装克隆
+里的 `dsh-gee/` 目录：
+
+```bash
+git clone https://github.com/cdllI/dsh-gee
+# 代理劫持了 GitHub
+git -c http.proxy=http://127.0.0.1:7890 clone https://github.com/cdllI/dsh-gee
+```
+
+如果 `web_fetch` 报 `URL hostname resolves to a non-public IP address`，那是本地代理把域名映射到了私有
+地址：按上面的写法带代理克隆，或者用 `api.github.com`、`raw.githubusercontent.com` 读文件——这两个域名
+解析是公网的。
+
+然后在插件管理器里 **安装 bundle**，路径填 `<克隆目录>/dsh-gee` 的绝对路径，或者让 agent 调
+`install_bundle`。它改的是 profile，需要一次完全权限的审批。
+
+**不要手工改 profile 里的 `cordis.patch.yml` 或 `package.json`**；缩进错一格，profile 就起不来了。
+
+装完刷新页面，客户端那一半才会加载；左侧栏会出现 **GEE** 图标。
 
 ### 5. 验证
 

@@ -16,18 +16,21 @@ Then send your agent one line:
 
 > Install the plugin from https://github.com/cdllI/dsh-gee and connect it to my Earth Engine account.
 
-The agent has shell access, so it does the setup end to end, in this order:
+That URL is a **git repository, not an npm package** — a plugin manager cannot consume it directly. It
+has to be cloned, and then the `dsh-gee/` directory inside the clone is what gets installed. The agent
+does the whole thing:
 
-1. **clone and install**: `git clone https://github.com/cdllI/dsh-gee`, then `install_bundle` with the
-   absolute path to `dsh-gee/` (it needs a full-access approval because it edits the profile)
-2. **environment**: `powershell -File tools\bootstrap.ps1` on Windows, `sh tools/bootstrap.sh` elsewhere
-   — creates `.venv` and installs `earthengine-api` from a mirror
-3. **authorization**: `.venv/Scripts/earthengine.exe authenticate --auth_mode localhost` (POSIX:
-   `.venv/bin/earthengine`); it opens the browser and captures the callback on port 8085. The
-   `--auth_mode` flag is mandatory, see step 2 under [Install](#install)
-4. **configuration**: write `dsh-gee/gee.config.json` with the absolute interpreter path and your project
-   id, plus `proxy` when the network needs one
-5. **verification**: `gee_status` until it reports `server round-trip: ok`
+1. **clone**: `git clone https://github.com/cdllI/dsh-gee`. Behind a proxy that intercepts GitHub:
+   `git -c http.proxy=http://127.0.0.1:7890 clone https://github.com/cdllI/dsh-gee`
+2. **install the bundle**: `install_bundle` with the absolute path to `<clone>/dsh-gee`. It edits the
+   profile, so it needs a full-access approval. Hand-editing `cordis.patch.yml` is not the way — one
+   indentation mistake leaves the profile unable to start
+3. **environment**: `gee_setup action=install` — finds the Python that DeepSeek Harness ships, builds a
+   private virtual environment, and installs `earthengine-api`, `tifffile` and `matplotlib`
+4. **authorization**: `gee_setup action=auth` prints a browser link. The `--auth_mode localhost` flow is
+   mandatory; the retired out-of-band flow returns `400 invalid_request`
+5. **configuration and verification**: pass your Cloud project id to `gee_setup action=verify`, which
+   also runs a live round trip through Earth Engine
 
 You do exactly two things: click **Allow** in the browser, and tell it your Cloud project id.
 
@@ -152,9 +155,26 @@ file, so nothing in the repository carries local paths.
 
 ### 4. Install the bundle
 
-Install this directory as a bundle through the Harness plugin manager (`install_bundle` with the
-absolute path to `dsh-gee/`), or add the equivalent row to your profile patch. Reload the page
-afterwards so the client half is picked up.
+`https://github.com/cdllI/dsh-gee` is a repository, not an npm package — a plugin manager cannot consume
+it as-is. Clone it first, then install the `dsh-gee/` directory inside the clone:
+
+```bash
+git clone https://github.com/cdllI/dsh-gee
+# behind a proxy that intercepts GitHub
+git -c http.proxy=http://127.0.0.1:7890 clone https://github.com/cdllI/dsh-gee
+```
+
+If `web_fetch` refuses `github.com` with `URL hostname resolves to a non-public IP address`, the local
+proxy is mapping the name to a private address: clone with the proxy as above, or read files through
+`api.github.com` and `raw.githubusercontent.com`, which resolve publicly.
+
+Then install the bundle at the absolute path `<clone>/dsh-gee` — plugin manager → **Install bundle** →
+path, or `install_bundle` from the agent. This edits the profile, so it needs a full-access approval.
+
+Do not hand-edit the profile's `cordis.patch.yml` or `package.json`; a single indentation mistake leaves
+the profile unable to start.
+
+Reload the page afterwards so the client half is picked up; the panel appears in the left rail as **GEE**.
 
 ### 5. Verify
 

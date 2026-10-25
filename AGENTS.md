@@ -63,6 +63,12 @@ over the file.
 - **`package.json` must be UTF-8 without BOM.** A BOM fails bundle loading with "Unexpected token".
 - **`computePixels` out-of-bounds pixels come back as 0**, not nodata; mask them yourself if the image
   does not cover the requested grid.
+- **The install source is a directory, never a URL.** `https://github.com/cdllI/dsh-gee` is a git repo;
+  `install_bundle` takes the absolute path to the `dsh-gee/` directory inside a clone. Say so in the
+  README, or agents try to feed the URL to the plugin manager and then hand-edit `cordis.patch.yml`.
+- **Testing an install must not point at the development tree.** An agent with a full-access approval can
+  `git clean -fdx` or `Remove-Item -Recurse` the directory it was told is "the plugin". Install from a
+  copy (`.install/dsh-gee`) so the repository cannot be a casualty.
 - **Runtime output must not live beside the plugin.** A bundle installed into a profile is copied outside
   the agent's workspace, and the sandboxed worker cannot write there: `.cache` failed with `WinError 5`, and
   `../scripts` silently landed in the profile. Resolve the output root from the session working directory
