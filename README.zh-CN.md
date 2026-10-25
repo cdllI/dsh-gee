@@ -8,7 +8,13 @@ Python 分析、在地图面板上叠图层、批量导出、管理资产。整�
 
 ## 快速开始
 
-不需要你手动配置。把仓库克隆下来，然后给 agent 发一句话：
+不需要你手动配置。
+
+```bash
+git clone https://github.com/cdllI/dsh-gee.git
+```
+
+然后给 agent 发一句话：
 
 > 把 `./dsh-gee` 这个插件装上，并连上我的 Earth Engine 账号。
 

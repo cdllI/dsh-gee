@@ -10,7 +10,13 @@ handled once rather than per call.
 
 ## Quickstart
 
-You do not have to configure anything by hand. Clone this repository, then send your agent one line:
+You do not have to configure anything by hand.
+
+```bash
+git clone https://github.com/cdllI/dsh-gee.git
+```
+
+Then send your agent one line:
 
 > Install the `dsh-gee` plugin from `./dsh-gee` and connect it to my Earth Engine account.
 
