@@ -295,7 +295,7 @@ export function createSetup({ cfg, here, outRootFor }) {
               : !current.credentialsReady
                 ? 'run action=auth'
                 : !current.project
-                  ? 'set project, then run action=verify'
+                  ? 'run action=verify project=<your-cloud-project-id>: nothing works without a project'
                   : 'run action=verify';
         return { phase: 'check', ...current, next };
       }
@@ -335,7 +335,7 @@ export function createSetup({ cfg, here, outRootFor }) {
           ...current,
           log: installed.output,
           next: current.credentialsReady
-            ? 'run action=verify'
+            ? 'run action=verify project=<your-cloud-project-id>'
             : 'reload the plugin so the worker uses the new interpreter, then run action=auth',
         };
       }

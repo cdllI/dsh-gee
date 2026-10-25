@@ -19,7 +19,11 @@ interpreter, virtual environment, packages, credentials or project id.
 - `action=install` builds the environment and writes `gee.config.json`. On Windows the packages come from
   a `wheels/` directory beside the plugin when it exists, so this works offline.
 - `action=auth` starts the browser flow and returns the URL to open. Ask the human to approve it.
-- `action=verify` runs a real round trip and proves the projector id and credentials work.
+- `action=verify project=<id>` runs a real round trip and proves the project id and credentials work.
+  Nothing else works without a project, so pass it here.
+
+Do not build the virtual environment yourself and do not call `pip` directly: `gee_setup` already sets a
+writable temp directory and prefers the Python runtime DeepSeek Harness ships.
 
 After `install`, the running worker still uses its old interpreter: re-apply the plugin (or restart the
 app) before calling the other tools.
