@@ -173,6 +173,18 @@ export function apply(ctx, config) {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(id);
+        // A timed-out computation keeps the worker busy, so every later call
+        // would queue behind it. Kill it and let the next call spawn a fresh one.
+        stderrTail = '';
+        if (child) {
+          try {
+            child.kill();
+          } catch {
+            // already gone
+          }
+          child = undefined;
+        }
+        buffer = '';
         reject(new Error(`Earth Engine worker timed out after ${cfg.timeoutMs} ms during ${op}`));
       }, cfg.timeoutMs);
       pending.set(id, { resolve, reject, timer });

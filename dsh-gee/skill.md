@@ -43,6 +43,10 @@ Boundaries: `FAO/GAUL/2025/level1` for provinces (`ADM1_NAME`, for example `Shan
 user as an image. Use it for scatters, histograms and time series; do not try to return pixels as JSON.
 `matplotlib` must be installed in the worker environment (it usually is in a scientific setup).
 
+Draw inside `gee_eval` rather than saving a standalone script: the figure comes back automatically. If you
+do save a file, link it with a **workspace-relative** path (`exports/chart.png`); `D:\...` and `file://`
+paths do not render in the chat.
+
 ## Conventions
 
 - `region=[west, south, east, north]` in degrees, in every tool that takes a region.
