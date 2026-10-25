@@ -272,6 +272,23 @@ export function apply(ctx, config) {
     }
   }
 
+  /** One line per fact a caller would otherwise re-open the file to learn. */
+  function describeVerify(verify) {
+    if (!verify || typeof verify !== 'object') return '';
+    const parts = [];
+    if (Number.isFinite(verify.width) && Number.isFinite(verify.height)) {
+      parts.push(`${verify.width}x${verify.height}${Number.isFinite(verify.bands) && verify.bands > 1 ? `x${verify.bands}` : ''} ${verify.dtype ?? ''}`.trim());
+    }
+    if (Array.isArray(verify.bounds) && verify.bounds.length === 4) {
+      parts.push(`bounds ${verify.bounds.map((value) => Number(value).toFixed(3)).join(', ')}`);
+    }
+    if (Number.isFinite(verify.nodata_fraction)) {
+      parts.push(`${(verify.nodata_fraction * 100).toFixed(1)}% nodata`);
+    }
+    if (verify.note) parts.push(verify.note);
+    return parts.length > 0 ? `\n${parts.join(' · ')}` : '';
+  }
+
   ctx.tools.register(createSetup({ cfg, here: HERE, outRootFor }));
 
   ctx.tools.register({
@@ -639,24 +656,27 @@ export function apply(ctx, config) {
           task_id: { type: 'string' },
           destination: { type: 'string' },
           status: { type: 'object', additionalProperties: true },
+          script: { type: 'string' },
         },
         required: ['task_id', 'destination'],
       },
       render: (_args, value) => [
         {
           type: 'text',
-          text: `Export task ${value.task_id} started → ${value.destination} (state: ${value.status?.state ?? 'unknown'}). Poll with gee_tasks.`,
+          text:
+            `Export task ${value.task_id} started → ${value.destination} (state: ${value.status?.state ?? 'unknown'}). Poll with gee_tasks.` +
+            (value.script ? `\nscript: ${value.script}` : ''),
         },
       ],
     },
     async execute(args, exec) {
       await confirm(exec, `export to ${args.destination === 'asset' ? 'asset' : 'drive'}: ${args.description || 'unnamed'}`);
-      await recordScript('export', String(args.code ?? ''), {
+      const script = await recordScript('export', String(args.code ?? ''), {
         region: Array.isArray(args.region) ? args.region : undefined,
         scale: Number.isFinite(args.scale) ? args.scale : undefined,
         name: typeof args.description === 'string' ? args.description : undefined,
       }, exec);
-      return call(
+      const exported = await call(
         'export',
         {
           code: String(args.code ?? ''),
@@ -672,6 +692,7 @@ export function apply(ctx, config) {
         },
         exec.signal,
       );
+      return { ...exported, ...(script ? { script } : {}) };
     },
   });
 
@@ -838,6 +859,7 @@ export function apply(ctx, config) {
           bands: { type: 'integer' },
           inside_fraction: { type: 'number' },
           script: { type: 'string' },
+          verify: { type: 'object', additionalProperties: true },
         },
         required: ['path', 'bytes'],
       },
@@ -846,6 +868,7 @@ export function apply(ctx, config) {
           type: 'text',
           text:
             `Saved ${(value.bytes / 1048576).toFixed(2)} MiB GeoTIFF -> ${value.path}` +
+            describeVerify(value.verify) +
             (value.script ? `\nscript: ${value.script}` : ''),
         },
       ],
@@ -888,6 +911,7 @@ export function apply(ctx, config) {
       if (Number.isFinite(downloaded.chunks)) result.chunks = downloaded.chunks;
       if (Number.isFinite(downloaded.bands)) result.bands = downloaded.bands;
       if (Number.isFinite(downloaded.inside_fraction)) result.inside_fraction = downloaded.inside_fraction;
+      if (downloaded.verify && typeof downloaded.verify === 'object') result.verify = downloaded.verify;
       return result;
     },
   });

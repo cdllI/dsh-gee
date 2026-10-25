@@ -473,6 +473,67 @@ def op_asset_layer(args):
     return {"map": ee.Image(asset).getMapId(_vis(args))["mapid"]}
 
 
+def _describe_tif(path, fallback_bounds=None, limit_bytes=256 * 1024 * 1024):
+    """Report what the file actually contains, so callers do not have to re-probe it."""
+    size = os.path.getsize(path)
+    info = {"bytes": size}
+    if size > limit_bytes:
+        info["note"] = "too large to inspect; bounds and nodata were not verified"
+        return info
+    try:
+        import numpy as np
+        import tifffile
+
+        with tifffile.TiffFile(path) as document:
+            page = document.pages[0]
+            page_count = len(document.pages)
+            array = page.asarray()
+            tags = page.tags
+            scale = tags[33550].value if 33550 in tags else None
+            tie = tags[33922].value if 33922 in tags else None
+            nodata = None
+            if 42113 in tags:
+                try:
+                    nodata = float(tags[42113].value)
+                except (TypeError, ValueError):
+                    nodata = None
+    except Exception as error:  # a broken file must not hide the download itself
+        info["note"] = "could not inspect: %s" % error
+        return info
+
+    width = int(getattr(page, "imagewidth", array.shape[-1]))
+    height = int(getattr(page, "imagelength", array.shape[-2]))
+    samples = int(getattr(page, "samplesperpixel", 1))
+    # A band-sequential TIFF stores one page per band; a chunky one stores all
+    # samples in one page.
+    info.update(
+        width=width,
+        height=height,
+        bands=samples if page_count == 1 else page_count * samples,
+        dtype=str(array.dtype),
+    )
+    if nodata is not None:
+        outside = int(np.count_nonzero(array == nodata))
+        info["nodata"] = nodata
+        info["nodata_fraction"] = round(outside / array.size, 4)
+    if scale is not None and tie is not None:
+        west, north = float(tie[3]), float(tie[4])
+        info["pixel_size"] = [round(float(scale[0]), 10), round(float(scale[1]), 10)]
+        info["bounds"] = [
+            round(west, 6),
+            round(north - float(scale[1]) * height, 6),
+            round(west + float(scale[0]) * width, 6),
+            round(north, 6),
+        ]
+        info["bounds_source"] = "file"
+    elif isinstance(fallback_bounds, list) and len(fallback_bounds) == 4:
+        # Earth Engine does not always write the georeferencing tags; the requested
+        # region is still the true extent of a bbox download.
+        info["bounds"] = [round(float(value), 6) for value in fallback_bounds]
+        info["bounds_source"] = "requested region"
+    return info
+
+
 def op_download(args):
     """Download a bounded image as a GeoTIFF.
 
@@ -501,6 +562,15 @@ def op_download(args):
         params["bands"] = list(args["bands"])
     if args.get("crs"):
         params["crs"] = args["crs"]
+    elif args.get("clipAsset"):
+        # The painted boundary carries no projection of its own, so pin both
+        # requests to the image's native CRS instead of letting each pick one.
+        try:
+            native = image.projection().crs().getInfo()
+        except Exception:
+            native = None
+        if native:
+            params["crs"] = native
 
     cache = args.get("cache") or os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
     os.makedirs(cache, exist_ok=True)
@@ -513,34 +583,64 @@ def op_download(args):
         handle, path = tempfile.mkstemp(prefix="dsh-gee-", suffix=".tif", dir=cache)
         with os.fdopen(handle, "wb") as stream:
             stream.write(payload)
-        return {"path": path, "bytes": len(payload), "url": url}
-
-    mask_url = ee.Image().paint(ee.FeatureCollection(clip_asset), 1).getDownloadURL(params)
-    mask_payload = _requests().get(mask_url, timeout=600).content
+        requested = region if isinstance(region, list) and len(region) == 4 else None
+        return {"path": path, "bytes": len(payload), "url": url, "verify": _describe_tif(path, requested)}
 
     handle, data_path = tempfile.mkstemp(prefix="dsh-gee-src-", suffix=".tif", dir=cache)
     with os.fdopen(handle, "wb") as stream:
         stream.write(payload)
+    try:
+        with tifffile.TiffFile(data_path) as source:
+            page = source.pages[0]
+            data = page.asarray()
+            samples = int(getattr(page, "samplesperpixel", 1))
+            geo = [(tag, page.tags[tag].value)
+                   for tag in (33550, 33922, 34735) if tag in page.tags]
+    finally:
+        os.remove(data_path)
+
+    # Earth Engine tags a 3-band image as RGB, and tifffile then reads it as
+    # (rows, cols, samples); a plain stack reads as (samples, rows, cols).
+    if data.ndim == 3 and samples > 1 and data.shape[-1] == samples:
+        data = np.moveaxis(data, -1, 0)
+    rows, cols = int(data.shape[-2]), int(data.shape[-1])
+
+    # The painted boundary has no projection of its own, so a second request with
+    # the same region and scale can land on a different grid. Ask for exactly the
+    # grid the image came back on.
+    mask_params = dict(params)
+    mask_params.pop("scale", None)  # dimensions and scale are mutually exclusive
+    mask_params["dimensions"] = "%dx%d" % (cols, rows)
+    mask_url = ee.Image().paint(ee.FeatureCollection(clip_asset), 1).getDownloadURL(mask_params)
+    mask_payload = _requests().get(mask_url, timeout=600).content
     handle, mask_path = tempfile.mkstemp(prefix="dsh-gee-mask-", suffix=".tif", dir=cache)
     with os.fdopen(handle, "wb") as stream:
         stream.write(mask_payload)
     try:
-        with tifffile.TiffFile(data_path) as source:
-            data = source.pages[0].asarray()
-            geo = [(tag, source.pages[0].tags[tag].value)
-                   for tag in (33550, 33922, 34735) if tag in source.pages[0].tags]
         mask = tifffile.imread(mask_path)
     finally:
-        os.remove(data_path)
         os.remove(mask_path)
+    if mask.ndim == 3:
+        mask = mask[0]
 
-    if data.shape != mask.shape:
-        raise ValueError("clip mask grid does not match the download: %s vs %s" % (data.shape, mask.shape))
-
-    inside = mask > 0
     fill = float(args.get("nodata", -32768))
     out = np.asarray(data, dtype="float32")
-    out[~inside] = fill
+    inside = mask > 0
+    if inside.shape != out.shape[-2:]:
+        # A pixel of drift is harmless for a binary mask; anything more means the two
+        # requests disagreed and the clip would be wrong.
+        if abs(inside.shape[0] - out.shape[-2]) > 2 or abs(inside.shape[1] - out.shape[-1]) > 2:
+            raise ValueError(
+                "clip mask grid does not match the download: %s vs %s" % (inside.shape, out.shape[-2:])
+            )
+        rows, cols = out.shape[-2:]
+        ys = np.clip((np.arange(rows) * (inside.shape[0] / rows)).astype(int), 0, inside.shape[0] - 1)
+        xs = np.clip((np.arange(cols) * (inside.shape[1] / cols)).astype(int), 0, inside.shape[1] - 1)
+        inside = inside[np.ix_(ys, xs)]
+    if out.ndim == 3:
+        out = np.where(inside[None, :, :], out, np.float32(fill))
+    else:
+        out[~inside] = fill
 
     handle, path = tempfile.mkstemp(prefix="dsh-gee-clipped-", suffix=".tif", dir=cache)
     os.close(handle)
@@ -550,7 +650,8 @@ def op_download(args):
     # clip output derives them from the requested region and the actual shape.
     if isinstance(region, list) and len(region) == 4:
         west_, south_, east_, north_ = [float(v) for v in region]
-        extratags.append((33550, "d", 3, ((east_ - west_) / data.shape[1], (north_ - south_) / data.shape[0], 0.0), False))
+        rows, cols = out.shape[-2], out.shape[-1]
+        extratags.append((33550, "d", 3, ((east_ - west_) / cols, (north_ - south_) / rows, 0.0), False))
         extratags.append((33922, "d", 6, (0.0, 0.0, 0.0, west_, north_, 0.0), False))
     keydir = next((value for (code_, value) in geo if code_ == 34735), None)
     if keydir is None:
@@ -563,6 +664,7 @@ def op_download(args):
         "url": url,
         "clipped": True,
         "inside_fraction": round(float(inside.mean()), 4),
+        "verify": _describe_tif(path, region if isinstance(region, list) and len(region) == 4 else None),
     }
 
 
