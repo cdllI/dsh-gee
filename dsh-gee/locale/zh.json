@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Google Earth Engine",
+    "description": "让 agent 直接检索 GEE 数据目录、执行 Earth Engine 表达式并生成遥感影像预览。"
+  }
+}

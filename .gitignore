@@ -1,0 +1,14 @@
+# machine-local configuration (contains absolute paths and a project id)
+dsh-gee/gee.config.json
+
+# local runtime state
+.venv/
+.gee-home/
+dsh-gee/.cache/
+dsh-gee/previews/
+exports/
+scripts/
+.dsh-launch/
+node_modules/
+__pycache__/
+*.pyc
