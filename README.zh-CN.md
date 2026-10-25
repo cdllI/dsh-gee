@@ -61,6 +61,18 @@ agent 有 shell 权限，它会按这个顺序做完：
 
 ## 安装
 
+### Windows 一键配置
+
+DSH 自带 Python 3.12 运行时，所以**不需要手动装任何东西**。给 agent 发一句：
+
+> 用 `gee_setup` 配置这个插件：check、install、auth、verify。
+
+它会找到 DSH 的运行时、建私有虚拟环境、装 `earthengine-api` / `tifffile` / `matplotlib`
+（插件旁边有 `wheels/` 目录时全程离线）、写 `gee.config.json`、返回浏览器授权链接。
+你只需要点一次「允许」、给一次项目号。
+
+下面的手动步骤用于排查问题，或没有发布 wheelhouse 的平台。
+
 ### 1. 准备一个装了 Earth Engine 的 Python
 
 ```bash

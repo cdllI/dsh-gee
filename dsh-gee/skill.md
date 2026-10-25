@@ -11,6 +11,19 @@ result = col.size()          # -> 42
 When anything fails, call `gee_status` first. It separates bad credentials, a missing project, an
 unreachable proxy and a dead worker in one call.
 
+## First run
+
+Before the first `gee_eval`, call `gee_setup action=check`. It reports which piece is missing:
+interpreter, virtual environment, packages, credentials or project id.
+
+- `action=install` builds the environment and writes `gee.config.json`. On Windows the packages come from
+  a `wheels/` directory beside the plugin when it exists, so this works offline.
+- `action=auth` starts the browser flow and returns the URL to open. Ask the human to approve it.
+- `action=verify` runs a real round trip and proves the projector id and credentials work.
+
+After `install`, the running worker still uses its old interpreter: re-apply the plugin (or restart the
+app) before calling the other tools.
+
 ## Pick the tool
 
 | Situation | Tool |

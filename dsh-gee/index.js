@@ -15,6 +15,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createSetup } from './setup.js';
+
 export const name = 'dsh-gee';
 export const inject = ['tools', 'attachments', 'webServer'];
 
@@ -269,6 +271,8 @@ export function apply(ctx, config) {
       );
     }
   }
+
+  ctx.tools.register(createSetup({ cfg, here: HERE, outRootFor }));
 
   ctx.tools.register({
     name: 'gee_status',

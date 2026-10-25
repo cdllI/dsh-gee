@@ -9,6 +9,7 @@ dsh-gee/previews/
 exports/
 scripts/
 .dsh-launch/
+wheels/
 node_modules/
 __pycache__/
 *.pyc

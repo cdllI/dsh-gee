@@ -18,7 +18,8 @@
     "locale/*.json",
     "icon.svg",
     "vendor/*",
-    "skill.md"
+    "skill.md",
+    "setup.js"
   ],
   "dsh": {
     "bundle": {

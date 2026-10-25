@@ -65,6 +65,19 @@ path that handles both, and it exposes the full batch and asset API.
 
 ## Install
 
+### One-step setup (Windows)
+
+DeepSeek Harness already ships a Python 3.12 runtime, so nothing has to be installed by hand. Send the
+agent one line:
+
+> Run `gee_setup` for this plugin: check, install, auth, verify.
+
+It finds the Harness runtime, builds a private virtual environment, installs `earthengine-api`, `tifffile`
+and `matplotlib` (offline when a `wheels/` directory sits next to the plugin), writes `gee.config.json`,
+and returns the browser link. You only approve the consent screen and give it your project id.
+
+The manual steps below are for debugging, or for platforms without a published wheelhouse.
+
 ### 1. Get a Python with Earth Engine
 
 ```bash
