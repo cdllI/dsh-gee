@@ -169,7 +169,7 @@ result = col.median().select(["B4", "B3", "B2"])
 
 - 每一段执行的代码都会写成 `scripts/gee-<时间戳>-<类型>.py`，文件头记录项目、区域和 scale，
   工具结果里会带路径。任何结果都能追溯到确切的那份代码。
-- `gee_download`、`gee_export`、`gee_assets delete` / `move` 会先请求审批。审批是**失败关闭**的：
+- `gee_export`、`gee_assets delete` / `move`，以及分块 `gee_download` 会先请求审批。审批是**失败关闭**的：
   没有审批服务，或者返回值不是 `allowed-once`，一律拒绝。只有无人值守的批量任务才建议设
   `"approval": "off"`。
 - worker 用**你的 Earth Engine 凭据**执行模型写的 Python，没有额外沙箱。请把这个插件理解为
