@@ -17,8 +17,8 @@ Python 分析、在地图面板上叠图层、批量导出、管理资产。整�
 这个地址是**一个 Git 仓库，不是 npm 包**——插件管理器不能直接吃它。它必须先克隆下来，然后把克隆里
 的 `dsh-gee/` 目录装成 bundle。agent 会按这个顺序做完：
 
-1. **克隆**：`git clone https://github.com/cdllI/dsh-gee`。如果代理劫持了 GitHub：
-   `git -c http.proxy=http://127.0.0.1:7890 clone https://github.com/cdllI/dsh-gee`
+1. **克隆**：`git clone https://github.com/cdllI/dsh-gee`。如果这台机器要走代理，先导出 `HTTPS_PROXY`
+   ——git 会用它。如果克隆失败是因为代理劫持了 `github.com` 的 DNS，改用 [安装](#安装) 里的 tarball 端点
 2. **装 bundle**：`install_bundle`，参数是 `<克隆目录>/dsh-gee` 的绝对路径。它改的是 profile，
    需要一次完全权限的审批。**不要手工改 `cordis.patch.yml`**——缩进错一格整个 profile 就起不来
 3. **建环境**：`gee_setup action=install`——找到 DSH 自带的 Python，建私有虚拟环境，装
@@ -122,7 +122,7 @@ USERPROFILE=/writable/dir .venv/bin/earthengine authenticate
 {
   "python": "/path/to/.venv/bin/python",
   "project": "your-earth-engine-project-id",
-  "proxy": "http://127.0.0.1:7890",
+  "proxy": "http://<host>:<port>",
   "home": "",
   "approval": "ask",
   "timeoutMs": 180000
@@ -131,7 +131,7 @@ USERPROFILE=/writable/dir .venv/bin/earthengine authenticate
 
 | 键 | 含义 | 默认 |
 |---|---|---|
-| `python` | 装了 `earthengine-api` 的解释器 | `PATH` 里的 `python` |
+| `python` | 装了 `earthengine-api` 的解释器。`gee_setup` 会自动写入，并优先用 DSH 自带的运行时 | `PATH` 里的 `python` |
 | `project` | 承载 Earth Engine 配额的 Cloud 项目；凭据文件里有时也会自动读到 | 无 |
 | `proxy` | 以 `HTTPS_PROXY` / `HTTP_PROXY` 传给 worker | 空 |
 | `home` | 设置 worker 的 `USERPROFILE` / `HOME`，让凭据可以放在别处 | 继承 |
@@ -148,9 +148,10 @@ USERPROFILE=/writable/dir .venv/bin/earthengine authenticate
 
 ```bash
 git clone https://github.com/cdllI/dsh-gee
-# 代理劫持了 GitHub
-git -c http.proxy=http://127.0.0.1:7890 clone https://github.com/cdllI/dsh-gee
 ```
+
+如果这台机器要走代理，克隆前导出 `HTTPS_PROXY`——地址和端口是你自己的，不是文档里的：
+`export HTTPS_PROXY=http://<host>:<port>`（PowerShell：`$env:HTTPS_PROXY='http://<host>:<port>'`）。
 
 如果 `web_fetch` 报 `URL hostname resolves to a non-public IP address`，那是本地代理把域名映射到了私有
 地址：按上面的写法带代理克隆，或者用 `api.github.com`、`raw.githubusercontent.com` 读文件——这两个域名
@@ -158,7 +159,7 @@ git -c http.proxy=http://127.0.0.1:7890 clone https://github.com/cdllI/dsh-gee
 
 #### `git clone` 到不了 GitHub 时
 
-有些本地代理把 `github.com` 的 DNS 直接答成 `127.0.0.1`，`git clone` 直接失败，加 `-c http.proxy` 也没用。
+有些本地代理把 `github.com` 的 DNS 直接答成 `127.0.0.1`，`git clone` 直接失败，配代理也救不回来。
 tarball 端点通常还能通：
 
 ```bash

@@ -20,8 +20,9 @@ That URL is a **git repository, not an npm package** — a plugin manager cannot
 has to be cloned, and then the `dsh-gee/` directory inside the clone is what gets installed. The agent
 does the whole thing:
 
-1. **clone**: `git clone https://github.com/cdllI/dsh-gee`. Behind a proxy that intercepts GitHub:
-   `git -c http.proxy=http://127.0.0.1:7890 clone https://github.com/cdllI/dsh-gee`
+1. **clone**: `git clone https://github.com/cdllI/dsh-gee`. If this machine reaches GitHub through a
+   proxy, export `HTTPS_PROXY` first — git honours it. If the clone fails because the proxy intercepts
+   DNS for `github.com`, use the tarball endpoint under [Install](#install)
 2. **install the bundle**: `install_bundle` with the absolute path to `<clone>/dsh-gee`. It edits the
    profile, so it needs a full-access approval. Hand-editing `cordis.patch.yml` is not the way — one
    indentation mistake leaves the profile unable to start
@@ -134,7 +135,7 @@ machine-local and git-ignored, so it never needs to match anyone else's paths.
 {
   "python": "/path/to/.venv/bin/python",
   "project": "your-earth-engine-project-id",
-  "proxy": "http://127.0.0.1:7890",
+  "proxy": "http://<host>:<port>",
   "home": "",
   "approval": "ask",
   "timeoutMs": 180000
@@ -143,7 +144,7 @@ machine-local and git-ignored, so it never needs to match anyone else's paths.
 
 | Key | Meaning | Default |
 |---|---|---|
-| `python` | Interpreter with `earthengine-api`. | `python` on `PATH` |
+| `python` | Interpreter with `earthengine-api`. `gee_setup` writes this for you and prefers the runtime DeepSeek Harness ships. | `python` on `PATH` |
 | `project` | Cloud project that owns the Earth Engine quota. Also read from the credential file when present. | none |
 | `proxy` | Exported to the worker as `HTTPS_PROXY` and `HTTP_PROXY`. | empty |
 | `home` | Sets `USERPROFILE` and `HOME` for the worker so the credential can live outside your real home. | inherit |
@@ -160,9 +161,11 @@ it as-is. Clone it first, then install the `dsh-gee/` directory inside the clone
 
 ```bash
 git clone https://github.com/cdllI/dsh-gee
-# behind a proxy that intercepts GitHub
-git -c http.proxy=http://127.0.0.1:7890 clone https://github.com/cdllI/dsh-gee
 ```
+
+If the machine reaches GitHub through a proxy, export `HTTPS_PROXY` before cloning — the address and
+port are yours, not this document's: `export HTTPS_PROXY=http://<host>:<port>` (PowerShell:
+`$env:HTTPS_PROXY='http://<host>:<port>'`).
 
 If `web_fetch` refuses `github.com` with `URL hostname resolves to a non-public IP address`, the local
 proxy is mapping the name to a private address: clone with the proxy as above, or read files through

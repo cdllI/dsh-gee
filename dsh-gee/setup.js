@@ -235,7 +235,7 @@ export function createSetup({ cfg, here, outRootFor }) {
           type: 'string',
           description: 'Earth Engine Cloud project id. Written to gee.config.json by install/auth/verify.',
         },
-        proxy: { type: 'string', description: 'HTTPS proxy for the worker, for example http://127.0.0.1:7890.' },
+        proxy: { type: 'string', description: 'HTTPS proxy for the worker, for example http://127.0.0.1:<port>.' },
         home: {
           type: 'string',
           description: 'Directory that holds .config/earthengine, when the real home is not writable.',
