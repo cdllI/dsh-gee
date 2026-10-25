@@ -63,6 +63,10 @@ over the file.
 - **`package.json` must be UTF-8 without BOM.** A BOM fails bundle loading with "Unexpected token".
 - **`computePixels` out-of-bounds pixels come back as 0**, not nodata; mask them yourself if the image
   does not cover the requested grid.
+- **Runtime output must not live beside the plugin.** A bundle installed into a profile is copied outside
+  the agent's workspace, and the sandboxed worker cannot write there: `.cache` failed with `WinError 5`, and
+  `../scripts` silently landed in the profile. Resolve the output root from the session working directory
+  (`exec.agent.session.header.cwd`), not from `HERE` or `process.cwd()` (the Host's cwd is the profile).
 ## Troubleshooting
 
 | Symptom | Cause / fix |

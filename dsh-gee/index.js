@@ -11,6 +11,7 @@
 import { spawn } from 'node:child_process';
 import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -42,6 +43,7 @@ function settings(config) {
     proxy: typeof raw.proxy === 'string' ? raw.proxy.trim() : '',
     timeoutMs: Number.isFinite(raw.timeoutMs) && raw.timeoutMs > 0 ? raw.timeoutMs : 120_000,
     approval: raw.approval === 'off' ? 'off' : 'ask',
+    outDir: typeof raw.outDir === 'string' ? raw.outDir.trim() : '',
   };
 }
 
@@ -60,6 +62,35 @@ function truncateJson(value) {
 export function apply(ctx, config) {
   const cfg = settings(config);
   const workerScript = path.join(HERE, 'worker.py');
+
+  /**
+   * Runtime output must not live in the install directory: a bundle installed
+   * into a profile sits outside the agent's workspace, where the sandboxed
+   * worker cannot write. The session working directory is the only reliable
+   * root, so it is resolved per call; `outDir` overrides it and temp is the
+   * last resort.
+   */
+  function outRootFor(exec) {
+    let cwd = '';
+    try {
+      cwd =
+        (exec && exec.agent && exec.agent.session && exec.agent.session.header && exec.agent.session.header.cwd) ||
+        '';
+    } catch {
+      cwd = '';
+    }
+    for (const dir of [cfg.outDir, cwd]) {
+      if (typeof dir !== 'string' || dir === '') continue;
+      try {
+        fsSync.mkdirSync(dir, { recursive: true });
+        fsSync.accessSync(dir, fsSync.constants.W_OK);
+        return dir;
+      } catch {
+        // try the next candidate
+      }
+    }
+    return os.tmpdir();
+  }
 
   let child;
   let buffer = '';
@@ -177,8 +208,17 @@ export function apply(ctx, config) {
    * Persist the exact snippet a tool is about to run, so every result has a
    * rerunnable file behind it and the user can review the code afterwards.
    */
-  async function recordScript(kind, code, meta) {
-    const dir = path.join(HERE, '..', 'scripts');
+  async function recordScript(kind, code, meta, exec) {
+    try {
+      return await writeScript(kind, code, meta, exec);
+    } catch {
+      // The audit file is best effort: a read-only workspace must not fail the call.
+      return undefined;
+    }
+  }
+
+  async function writeScript(kind, code, meta, exec) {
+    const dir = path.join(outRootFor(exec), 'scripts');
     await fs.mkdir(dir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const header = [
@@ -319,10 +359,10 @@ export function apply(ctx, config) {
     },
     async execute(args, exec) {
       const code = String(args.code ?? '');
-      const script = await recordScript('eval', code, {});
+      const script = await recordScript('eval', code, {}, exec);
       const value = await call('eval', { code, project: cfg.project }, exec.signal);
       const { text, truncated } = truncateJson(value.json);
-      return { result: text, truncated, script };
+      return { result: text, truncated, ...(script ? { script } : {}) };
     },
   });
 
@@ -396,13 +436,13 @@ export function apply(ctx, config) {
     async execute(args, exec) {
       const script = await recordScript('preview', String(args.code ?? ''), {
         region: Array.isArray(args.region) ? args.region : undefined,
-      });
+      }, exec);
       const preview = await call(
         'preview',
         {
           code: String(args.code ?? ''),
           project: cfg.project,
-          cache: path.join(HERE, '.cache'),
+          cache: path.join(outRootFor(exec), '.gee-cache'),
           bands: Array.isArray(args.bands) ? args.bands : undefined,
           min: Number.isFinite(args.min) ? args.min : undefined,
           max: Number.isFinite(args.max) ? args.max : undefined,
@@ -419,7 +459,7 @@ export function apply(ctx, config) {
           mediaType: 'image/png',
           name: 'gee-preview.png',
         });
-        const previews = path.join(HERE, 'previews');
+        const previews = path.join(outRootFor(exec), 'previews');
         await fs.mkdir(previews, { recursive: true });
         const file = path.join(previews, `gee-${Date.now()}.png`);
         await fs.writeFile(file, bytes);
@@ -429,7 +469,7 @@ export function apply(ctx, config) {
           height: attachment.height,
           bytes: attachment.bytes,
           path: file,
-          script,
+          ...(script ? { script } : {}),
           attachment,
         };
       } finally {
@@ -506,7 +546,7 @@ export function apply(ctx, config) {
           limit: Number.isFinite(args.limit) ? args.limit : undefined,
           type: typeof args.type === 'string' ? args.type : undefined,
           refresh: Boolean(args.refresh),
-          cache: path.join(HERE, '.cache'),
+          cache: path.join(outRootFor(exec), '.gee-cache'),
         },
         exec.signal,
       );
@@ -573,7 +613,7 @@ export function apply(ctx, config) {
         region: Array.isArray(args.region) ? args.region : undefined,
         scale: Number.isFinite(args.scale) ? args.scale : undefined,
         name: typeof args.description === 'string' ? args.description : undefined,
-      });
+      }, exec);
       return call(
         'export',
         {
@@ -778,7 +818,7 @@ export function apply(ctx, config) {
         region: Array.isArray(args.region) ? args.region : undefined,
         scale: Number.isFinite(args.scale) ? args.scale : 500,
         name: typeof args.name === 'string' ? args.name : undefined,
-      });
+      }, exec);
       const downloaded = await call(
         chunked ? 'download_grid' : 'download',
         {
@@ -791,17 +831,17 @@ export function apply(ctx, config) {
           chunkPixels: Number.isFinite(args.chunkPixels) ? args.chunkPixels : undefined,
           clipAsset: typeof args.clipAsset === 'string' ? args.clipAsset : undefined,
           nodata: Number.isFinite(args.nodata) ? args.nodata : undefined,
-          cache: path.join(HERE, '.cache'),
+          cache: path.join(outRootFor(exec), '.gee-cache'),
         },
         exec.signal,
       );
-      const exportsDir = path.join(HERE, '..', 'exports');
+      const exportsDir = path.join(outRootFor(exec), 'exports');
       await fs.mkdir(exportsDir, { recursive: true });
       const stem = (typeof args.name === 'string' && args.name.trim() ? args.name.trim() : 'gee-export').replace(/[^\w.-]+/g, '-');
       const target = path.join(exportsDir, `${stem}-${Date.now()}.tif`);
       await fs.copyFile(downloaded.path, target);
       await fs.rm(downloaded.path, { force: true }).catch(() => {});
-      const result = { path: target, bytes: downloaded.bytes, script };
+      const result = { path: target, bytes: downloaded.bytes, ...(script ? { script } : {}) };
       if (typeof downloaded.url === 'string') result.url = downloaded.url;
       if (Number.isFinite(downloaded.chunks)) result.chunks = downloaded.chunks;
       if (Number.isFinite(downloaded.bands)) result.bands = downloaded.bands;
