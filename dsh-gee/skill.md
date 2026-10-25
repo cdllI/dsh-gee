@@ -39,6 +39,10 @@ confirming once and reusing: `COPERNICUS/S2_SR_HARMONIZED`, `LANDSAT/LC09/C02/T1
 Boundaries: `FAO/GAUL/2025/level1` for provinces (`ADM1_NAME`, for example `Shanxi Sheng`),
 `FAO/GAUL/2025/level2` for cities (`ADM2_NAME`), or a table asset under `projects/<project>/assets`.
 
+**Charts.** A matplotlib figure left open at the end of a `gee_eval` snippet is captured and shown to the
+user as an image. Use it for scatters, histograms and time series; do not try to return pixels as JSON.
+`matplotlib` must be installed in the worker environment (it usually is in a scientific setup).
+
 ## Conventions
 
 - `region=[west, south, east, north]` in degrees, in every tool that takes a region.

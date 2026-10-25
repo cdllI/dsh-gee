@@ -103,9 +103,36 @@ def op_status(args):
     return report
 
 
+def _capture_figures(cache):
+    """Save every open matplotlib figure so the Host can attach it to the reply."""
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except Exception:
+        return []
+    numbers = plt.get_fignums()
+    if not numbers:
+        return []
+    os.makedirs(cache, exist_ok=True)
+    paths = []
+    for number in numbers:
+        figure = plt.figure(number)
+        path = os.path.join(cache, "figure-%d-%d.png" % (number, int(time.time() * 1000)))
+        try:
+            figure.savefig(path, dpi=140, bbox_inches="tight")
+            paths.append(path)
+        except Exception:
+            pass
+    plt.close("all")
+    return paths
+
+
 def op_eval(args):
     value = _run(args.get("code", ""), args.get("project"))
-    return {"json": _jsonable(value)}
+    cache = args.get("cache") or os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
+    return {"json": _jsonable(value), "figures": _capture_figures(cache)}
 
 
 def op_preview(args):
@@ -631,6 +658,13 @@ def op_download_grid(args):
 def dispatch(request):
     op = request.get("op")
     args = request.get("args") or {}
+    cache = args.get("cache")
+    if cache:
+        # matplotlib refuses to import without a writable config directory, and
+        # the worker has no writable AppData, so pin it inside the call cache.
+        os.makedirs(cache, exist_ok=True)
+        os.environ.setdefault("MPLCONFIGDIR", os.path.join(cache, "mpl"))
+        os.makedirs(os.environ["MPLCONFIGDIR"], exist_ok=True)
     if op == "status":
         return op_status(args)
     if op == "eval":

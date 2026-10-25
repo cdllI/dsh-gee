@@ -154,6 +154,10 @@ col = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterDate("2024-06-01",
 result = col.size()
 ```
 
+Any matplotlib figure left open by the snippet is captured and attached to the reply as an image, which is
+how charts (TVDI dry/wet edges, histograms, time series) reach the user. Install `matplotlib` into the same
+Python environment to enable it.
+
 ```python
 # gee_preview: must leave an ee.Image in `result`
 result = col.median().select(["B4", "B3", "B2"])

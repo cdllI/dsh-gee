@@ -143,6 +143,9 @@ col = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterDate("2024-06-01",
 result = col.size()
 ```
 
+如果代码里留了未关闭的 matplotlib 图，插件会把图截图并作为图片贴回对话——TVDI 干湿边、直方图、时间序列
+这类图就是这样给到你的。同一个 Python 环境里装 `matplotlib` 即可启用。
+
 ```python
 # gee_preview：必须在 result 里留下一个 ee.Image
 result = col.median().select(["B4", "B3", "B2"])

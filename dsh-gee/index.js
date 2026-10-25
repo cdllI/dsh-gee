@@ -345,24 +345,50 @@ export function apply(ctx, config) {
           result: { type: 'string' },
           truncated: { type: 'boolean' },
           script: { type: 'string' },
+          images: { type: 'array', items: { type: 'object' } },
         },
         required: ['result', 'truncated'],
       },
-      render: (_args, value) => [
-        {
-          type: 'text',
-          text:
-            (value.truncated ? `${value.result}\n\n(truncated)` : value.result) +
-            (value.script ? `\n\nscript: ${value.script}` : ''),
-        },
-      ],
+      render: (_args, value) => {
+        const blocks = [
+          {
+            type: 'text',
+            text:
+              (value.truncated ? `${value.result}\n\n(truncated)` : value.result) +
+              (value.script ? `\n\nscript: ${value.script}` : ''),
+          },
+        ];
+        for (const image of value.images ?? []) blocks.push({ type: 'image', attachment: image });
+        return blocks;
+      },
     },
     async execute(args, exec) {
       const code = String(args.code ?? '');
       const script = await recordScript('eval', code, {}, exec);
-      const value = await call('eval', { code, project: cfg.project }, exec.signal);
+      const value = await call(
+        'eval',
+        { code, project: cfg.project, cache: path.join(outRootFor(exec), '.gee-cache') },
+        exec.signal,
+      );
       const { text, truncated } = truncateJson(value.json);
-      return { result: text, truncated, ...(script ? { script } : {}) };
+      const images = [];
+      for (const figure of value.figures ?? []) {
+        try {
+          const bytes = await fs.readFile(figure);
+          images.push(
+            await ctx.attachments.saveImage({ data: new Uint8Array(bytes), mediaType: 'image/png', name: 'gee-plot.png' }),
+          );
+        } catch {
+          // a figure that cannot be read is not worth failing the call
+        }
+        await fs.rm(figure, { force: true }).catch(() => {});
+      }
+      return {
+        result: text,
+        truncated,
+        ...(script ? { script } : {}),
+        ...(images.length > 0 ? { images } : {}),
+      };
     },
   });
 
