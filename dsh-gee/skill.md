@@ -77,6 +77,26 @@ The two calls take the same `code` and the same visualisation arguments, so issu
 **Charts** (scatter, histogram, time series) are not spatial: draw them inside `gee_eval` and let the
 figure capture deliver them. Never hand-write an image path into the reply.
 
+## When the data does not match the request
+
+If what the user asked for is not available in Earth Engine — wrong resolution, wrong years, wrong extent —
+**stop and say so**. Do not substitute a coarser product and carry on.
+
+Send one short message with three things:
+
+1. what they asked for, and what actually exists (resolution, year coverage, area);
+2. the options as a short list, each with its tradeoff;
+3. which one you would pick, and why.
+
+Then wait for the answer. A 500 m product is not a stand-in for a 30 m one: the number that comes out is a
+different number, and the choice is the user's, not yours.
+
+The same holds when a dataset exists but is **not hosted in Earth Engine**: say that it is not there, what
+fetching it would cost, and let the user decide whether the wait is acceptable.
+
+Do not spend more than two tool calls hunting for a product. If the catalog has no match, that is the
+answer — report it.
+
 ## Conventions
 
 - `region=[west, south, east, north]` in degrees, in every tool that takes a region.
