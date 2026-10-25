@@ -14,13 +14,17 @@ Python 分析、在地图面板上叠图层、批量导出、管理资产。整�
 
 > 安装 https://github.com/cdllI/dsh-gee 这个插件，并连上我的 Earth Engine 账号。
 
-agent 有 shell 权限，剩下的它自己会做完：
+agent 有 shell 权限，它会按这个顺序做完：
 
-1. 把仓库克隆下来，装 bundle（`install_bundle`，参数是里面的 `dsh-gee/` 目录）
-2. 建虚拟环境，在里面装 `earthengine-api`
-3. 跑 `earthengine authenticate`，把浏览器授权链接给你
-4. 写 `dsh-gee/gee.config.json`——解释器、项目号，需要代理的话还有代理地址
-5. 调 `gee_status`，直到服务端往返通过
+1. **克隆 + 安装**：`git clone https://github.com/cdllI/dsh-gee`，然后 `install_bundle`，参数是 `dsh-gee/`
+   的绝对路径（改的是 profile，需要一次完全权限的审批）
+2. **建环境**：Windows 用 `powershell -File tools\bootstrap.ps1`，其他平台用 `sh tools/bootstrap.sh`
+   ——创建 `.venv` 并从镜像装 `earthengine-api`
+3. **授权**：`.venv\Scripts\earthengine.exe authenticate --auth_mode localhost`（POSIX 是
+   `.venv/bin/earthengine`）；它会打开浏览器，在 8085 端口接收回调。`--auth_mode` 这个参数是必须的，
+   原因见 [安装](#安装) 第 2 步
+4. **写配置**：`dsh-gee/gee.config.json`，填解释器绝对路径和项目号，需要代理时再加 `proxy`
+5. **验证**：调 `gee_status`，直到返回 `server round-trip: ok`
 
 你只需要做两件事：**在浏览器里点“允许”**，以及**告诉它你的 Cloud 项目 ID**。
 

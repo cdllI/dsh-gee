@@ -16,13 +16,18 @@ Then send your agent one line:
 
 > Install the plugin from https://github.com/cdllI/dsh-gee and connect it to my Earth Engine account.
 
-The agent has shell access, so it does the setup end to end:
+The agent has shell access, so it does the setup end to end, in this order:
 
-1. clones the repository and installs the bundle (`install_bundle` with its `dsh-gee/` directory)
-2. creates a virtual environment and installs `earthengine-api` into it
-3. runs `earthengine authenticate` and gives you the browser link
-4. writes `dsh-gee/gee.config.json` — interpreter, project, proxy if your network needs one
-5. calls `gee_status` until the server round-trip passes
+1. **clone and install**: `git clone https://github.com/cdllI/dsh-gee`, then `install_bundle` with the
+   absolute path to `dsh-gee/` (it needs a full-access approval because it edits the profile)
+2. **environment**: `powershell -File tools\bootstrap.ps1` on Windows, `sh tools/bootstrap.sh` elsewhere
+   — creates `.venv` and installs `earthengine-api` from a mirror
+3. **authorization**: `.venv/Scripts/earthengine.exe authenticate --auth_mode localhost` (POSIX:
+   `.venv/bin/earthengine`); it opens the browser and captures the callback on port 8085. The
+   `--auth_mode` flag is mandatory, see step 2 under [Install](#install)
+4. **configuration**: write `dsh-gee/gee.config.json` with the absolute interpreter path and your project
+   id, plus `proxy` when the network needs one
+5. **verification**: `gee_status` until it reports `server round-trip: ok`
 
 You do exactly two things: click **Allow** in the browser, and tell it your Cloud project id.
 

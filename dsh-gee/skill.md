@@ -109,7 +109,7 @@ Exports are asynchronous and can take minutes; do not block on them.
 | Symptom | Cause and fix |
 |---|---|
 | `no project found` | Pass a project id, or set it in `gee.config.json`. |
-| `Please authorize access` | The refresh token is gone. Re-run `earthengine authenticate`. |
+| `Please authorize access` | The refresh token is gone. Re-run `earthengine authenticate --auth_mode localhost`; without that flag the consent page returns `400 invalid_request` because the default out-of-band flow was retired. |
 | A call times out | Proxy unreachable. `gee_status` shows what the worker actually received. |
 | Download fails immediately | The request is over Earth Engine's ~32 MB synchronous limit. Use `chunked`. |
 | Clipped raster is all white in QGIS | No `GDAL_NODATA` in the file. Use `clipAsset`, not `image.clip()`. |

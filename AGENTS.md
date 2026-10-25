@@ -69,6 +69,7 @@ over the file.
 |---|---|
 | `ee.Initialize: no project found` | `project` missing in both `gee.config.json` and the credential file. |
 | `Please authorize access ... earthengine authenticate` | No usable refresh token. Re-run the auth step and check `home`. |
+| `400 invalid_request` with `flowName=GeneralOAuthFlow` | `authenticate` ran without `--auth_mode localhost`, so it used the retired out-of-band redirect. |
 | `token exchange failed (400)` | Refresh token revoked. Re-authenticate. |
 | Every call times out | Proxy wrong or unreachable; `gee_status` shows the value the worker actually received. |
 | Layers listed but the map is blank | The browser cannot reach `earthengine.googleapis.com`; the Host side is fine. |
