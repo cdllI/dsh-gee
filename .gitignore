@@ -13,3 +13,4 @@ wheels/
 node_modules/
 __pycache__/
 *.pyc
+.install/
