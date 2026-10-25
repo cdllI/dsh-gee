@@ -10,9 +10,23 @@
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
-  "files": ["index.js", "client.js", "worker.py", "cordis.patch.yml", "locale/*.json", "icon.svg", "vendor/*"],
+  "files": [
+    "index.js",
+    "client.js",
+    "worker.py",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "vendor/*",
+    "skill.md"
+  ],
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
-    "client": { "platform": "web", "immediately": true }
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
   }
 }

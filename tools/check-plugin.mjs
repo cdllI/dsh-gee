@@ -73,6 +73,7 @@ const plugin = await import(pathToFileURL(entry).href);
 const registered = [];
 plugin.apply(
   {
+    get: () => undefined,
     effect(callback) {
       const dispose = callback();
       return typeof dispose === 'function' ? dispose : () => {};

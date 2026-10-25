@@ -963,4 +963,26 @@ export function apply(ctx, config) {
       },
     }),
   );
+
+  // Ship a skill so the *user's* agent gets the workflow; AGENTS.md only serves
+  // development inside this repository.
+  const skills = ctx.get('skills');
+  if (skills) {
+    try {
+      const content = fsSync.readFileSync(path.join(HERE, 'skill.md'), 'utf8');
+      ctx.effect(() =>
+        skills.register({
+          name: 'earth-engine',
+          description:
+            'Google Earth Engine workflows: choose a dataset, run Python analysis, render a preview, download or export, manage assets.',
+          whenToUse:
+            'Any task involving Earth Engine or satellite rasters: NDVI, DEM, land cover, imagery, provincial or county statistics.',
+          content,
+          source: 'runtime',
+        }),
+      );
+    } catch {
+      // The skill is optional; the tools still work without it.
+    }
+  }
 }
