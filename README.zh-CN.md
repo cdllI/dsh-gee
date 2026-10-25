@@ -50,7 +50,8 @@ agent 有 shell 权限，它会按这个顺序做完：
 ## 环境要求
 
 - 装好插件管理器的 DeepSeek Harness。
-- Python 3.10+，且安装了 `earthengine-api`，Harness 进程能调用它。
+- Python 3.10+，且安装了 `earthengine-api`、`numpy`、`tifffile`，Harness 进程能调用它。
+  `numpy` 和 `tifffile` 只有 `clipAsset` 和 `chunked` 用到；bootstrap 脚本会把三个一起装上。
 - 一个已启用 Earth Engine、且你的账号已注册的 Google Cloud 项目。
 - 如果所在网络访问不了 Google：一个本机可达的 HTTPS 代理。
 

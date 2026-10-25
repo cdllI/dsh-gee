@@ -21,7 +21,7 @@ if (-not (Test-Path $pip)) {
 
 Write-Host "installing earthengine-api from $Index"
 # --no-cache-dir avoids a stale cache lock left by an interrupted run.
-& $pip install --no-cache-dir --progress-bar off -i $Index earthengine-api
+& $pip install --no-cache-dir --progress-bar off -i $Index earthengine-api numpy tifffile
 
 & $pip show earthengine-api | Select-String '^Version:'
 

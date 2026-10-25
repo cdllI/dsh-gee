@@ -53,7 +53,9 @@ browser that walks `projects/<project>/assets` and adds image assets as layers.
 ## Requirements
 
 - DeepSeek Harness with the plugin manager.
-- Python 3.10+ with `earthengine-api` installed, reachable from the Harness process.
+- Python 3.10+ with `earthengine-api`, `numpy` and `tifffile` installed, reachable from the Harness process.
+  `numpy` and `tifffile` are only needed by `clipAsset` and `chunked`; the bootstrap scripts install all
+  three.
 - A Google Cloud project with Earth Engine enabled and registered for your account.
 - On networks where Google is blocked: an HTTPS proxy reachable from the same machine.
 

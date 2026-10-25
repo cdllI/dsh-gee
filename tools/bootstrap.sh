@@ -16,7 +16,7 @@ if [ ! -d "$VENV" ]; then
 fi
 
 # --no-cache-dir avoids a stale cache lock left by an interrupted run.
-"$VENV/bin/pip" install --no-cache-dir --progress-bar off -i "$INDEX" earthengine-api
+"$VENV/bin/pip" install --no-cache-dir --progress-bar off -i "$INDEX" earthengine-api numpy tifffile
 "$VENV/bin/pip" show earthengine-api | grep '^Version:'
 
 echo

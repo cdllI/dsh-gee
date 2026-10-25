@@ -103,6 +103,17 @@ def op_status(args):
     return report
 
 
+def _optional_module(name, feature):
+    """Import a heavy dependency, naming the feature and the fix when it is absent."""
+    try:
+        return __import__(name)
+    except ImportError as error:
+        raise RuntimeError(
+            "%s needs %s, which is not installed in this Python environment. "
+            "Run: python -m pip install %s" % (feature, name, name)
+        ) from error
+
+
 def _capture_figures(cache):
     """Save every open matplotlib figure so the Host can attach it to the reply."""
     try:
@@ -471,8 +482,8 @@ def op_download(args):
     declared no-data value. The written file always carries GDAL_NODATA, so a
     viewer stretches the real values rather than the fill value.
     """
-    import numpy as np
-    import tifffile
+    np = _optional_module("numpy", "clipAsset")
+    tifffile = _optional_module("tifffile", "clipAsset")
 
     ee = _init(args.get("project"))
     image = _run(args.get("code", ""), args.get("project"))
@@ -564,8 +575,8 @@ def op_download_grid(args):
     re-derives a per-request grid from `region` + `scale`, which stretches each
     tile slightly differently and produces a visible seam.
     """
-    import numpy as np
-    import tifffile
+    np = _optional_module("numpy", "chunked download")
+    tifffile = _optional_module("tifffile", "chunked download")
 
     ee = _init(args.get("project"))
     region = args.get("region")
