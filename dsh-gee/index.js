@@ -839,7 +839,7 @@ export function apply(ctx, config) {
       if (chunked && typeof args.clipAsset === 'string') {
         throw new Error('clipAsset is not supported with chunked downloads yet; download the bbox and clip it locally, or download without chunking');
       }
-      if (chunked) await confirm(exec, `chunked download ${args.name || 'gee-export'}`);
+      await confirm(exec, `${chunked ? 'chunked ' : ''}download ${args.name || 'gee-export'}`);
       const script = await recordScript('download', String(args.code ?? ''), {
         region: Array.isArray(args.region) ? args.region : undefined,
         scale: Number.isFinite(args.scale) ? args.scale : 500,

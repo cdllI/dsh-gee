@@ -183,7 +183,7 @@ result = col.median().select(["B4", "B3", "B2"])
 - Every snippet that runs is written to `scripts/gee-<timestamp>-<kind>.py` with a header naming the
   project, region and scale, and the tool result carries its path, so any result can be traced back to
   the exact code that produced it.
-- `gee_export`, `gee_assets delete` and `move`, and chunked `gee_download` ask for approval first. The
+- `gee_download`, `gee_export`, and `gee_assets delete` / `move` ask for approval first. The
   gate fails closed: no approval service, or any outcome other than `allowed-once`, refuses the call.
   Set `"approval": "off"` only for unattended batches.
 - The worker executes model-authored Python with your Earth Engine credentials and no additional
