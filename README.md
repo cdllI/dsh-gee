@@ -62,8 +62,17 @@ path that handles both, and it exposes the full batch and asset API.
 
 ```bash
 python -m venv .venv
-.venv/bin/pip install earthengine-api
-# Windows: .venv\Scripts\pip install earthengine-api
+.venv/bin/pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple earthengine-api
+# Windows: .venv\Scripts\pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple earthengine-api
+```
+
+**Do not route pip through your proxy.** A proxied PyPI download is the slowest part of setup: the same
+wheel takes about 12 s to even reach the index directly versus under 1 s through a domestic mirror, and a
+full dependency install goes from roughly ten minutes to seconds. The helper scripts do the venv and the
+mirror install for you:
+
+```bash
+sh tools/bootstrap.sh        # Windows: powershell -File tools\bootstrap.ps1
 ```
 
 ### 2. Authenticate

@@ -60,8 +60,15 @@ agent 有 shell 权限，剩下的它自己会做完：
 
 ```bash
 python -m venv .venv
-.venv/bin/pip install earthengine-api
-# Windows: .venv\Scripts\pip install earthengine-api
+.venv/bin/pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple earthengine-api
+# Windows: .venv\Scripts\pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple earthengine-api
+```
+
+**pip 不要走代理。** 这是整个安装里最慢的一步：同一个 wheel，直连 PyPI 光是打开索引就要约 12 秒，
+走国内镜像不到 1 秒；整套依赖装下来从十分钟级降到秒级。也可以直接用脚本，它会把 venv 和镜像源都处理好：
+
+```bash
+sh tools/bootstrap.sh        # Windows: powershell -File tools\bootstrap.ps1
 ```
 
 ### 2. 登录
