@@ -47,6 +47,19 @@ Draw inside `gee_eval` rather than saving a standalone script: the figure comes 
 do save a file, link it with a **workspace-relative** path (`exports/chart.png`); `D:\...` and `file://`
 paths do not render in the chat.
 
+## Deliverables
+
+Every **spatial** result ships twice:
+
+1. `gee_layer action=add` with the same expression, so the user can pan, zoom, blend and switch it — a
+   static PNG cannot be explored. Do this by default, not only when the user asks for a map.
+2. `gee_preview` for the static image that stays in the transcript.
+
+The two calls take the same `code` and the same visualisation arguments, so issue them together.
+
+**Charts** (scatter, histogram, time series) are not spatial: draw them inside `gee_eval` and let the
+figure capture deliver them. Never hand-write an image path into the reply.
+
 ## Conventions
 
 - `region=[west, south, east, north]` in degrees, in every tool that takes a region.

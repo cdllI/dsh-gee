@@ -920,7 +920,8 @@ export function apply(ctx, config) {
     description:
       'Add an Earth Engine image to the interactive map in the "GEE" panel as a layer, remove one layer, clear the ' +
       'stack, or list layers. The Python snippet must leave an ee.Image in `result`. Layers stay for the whole app ' +
-      'session and render as tiles in the browser.',
+      'session and render as tiles in the browser. Call it for every spatial result, not only when the user asks ' +
+      'for a map: a preview PNG cannot be panned or blended.',
     parameters: {
       type: 'object',
       properties: {
