@@ -30,10 +30,15 @@ function probe(python) {
   return result.stdout.toString().trim();
 }
 
+/** A bare command name is the plugin's fallback default, not a real preference. */
+function isBareCommand(value) {
+  return typeof value === 'string' && value.length > 0 && !/[\\/]/.test(value);
+}
+
 /** Ordered candidates: configured, the runtime DSH ships, its per-home copies, PATH. */
 function candidates(cfg) {
   const list = [];
-  if (cfg.python) list.push({ python: cfg.python, source: 'config' });
+  if (cfg.python && !isBareCommand(cfg.python)) list.push({ python: cfg.python, source: 'config' });
   try {
     if (typeof process.resourcesPath === 'string' && process.resourcesPath) {
       list.push({
@@ -57,6 +62,11 @@ function candidates(cfg) {
     } catch {
       // no provisioned runtimes
     }
+  }
+  // The runtime DSH ships is the one this plugin was built against, so it wins
+  // over whatever "python" happens to be first on PATH (often a conda install).
+  if (cfg.python && isBareCommand(cfg.python)) {
+    list.push({ python: cfg.python, source: 'PATH (configured)' });
   }
   list.push({ python: 'python', source: 'PATH' });
   return list;
@@ -162,7 +172,7 @@ export function createSetup({ cfg, here, outRootFor }) {
   function interpreterFor(exec, args) {
     if (args.venv) return venvPython(args.venv);
     const configured = readConfigFile().python || cfg.python || '';
-    if (configured) return configured;
+    if (configured && !isBareCommand(configured)) return configured;
     return venvPython(path.join(outRootFor(exec), '.gee-venv'));
   }
 

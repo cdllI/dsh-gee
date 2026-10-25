@@ -168,11 +168,39 @@ If `web_fetch` refuses `github.com` with `URL hostname resolves to a non-public 
 proxy is mapping the name to a private address: clone with the proxy as above, or read files through
 `api.github.com` and `raw.githubusercontent.com`, which resolve publicly.
 
+#### When `git clone` cannot reach GitHub
+
+Some local proxies answer DNS for `github.com` with `127.0.0.1`, so `git clone` fails outright and the
+proxy flag does not help. The tarball endpoint usually still works:
+
+```bash
+curl -L -o dsh-gee.tar.gz https://codeload.github.com/cdllI/dsh-gee/tar.gz/refs/heads/main
+tar -xzf dsh-gee.tar.gz     # yields dsh-gee-main/ with the same tree, minus the git history
+```
+
 Then install the bundle at the absolute path `<clone>/dsh-gee` — plugin manager → **Install bundle** →
 path, or `install_bundle` from the agent. This edits the profile, so it needs a full-access approval.
 
-Do not hand-edit the profile's `cordis.patch.yml` or `package.json`; a single indentation mistake leaves
-the profile unable to start.
+Do not hand-edit `cordis.patch.yml`; a single indentation mistake leaves the profile unable to start.
+
+#### Without a plugin-manager tool
+
+An agent that has only a shell can use the CLI instead (the `web` profile is CLI-manageable; `desktop`
+is reserved for the desktop app):
+
+```bash
+dsh plugin --profile web add file:/absolute/path/to/dsh-gee-main/dsh-gee
+```
+
+That adds the dependency; the bundle also has to be listed in `dsh.profile.bundles` inside
+`$DSH_HOME/profiles/web/package.json`:
+
+```json
+{ "dsh": { "profile": { "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "@local/dsh-gee"] } } }
+```
+
+Prove the composition before restarting — `dsh --profile web --dump-config | grep dsh-gee` should list the
+plugin's rows.
 
 Reload the page afterwards so the client half is picked up; the panel appears in the left rail as **GEE**.
 

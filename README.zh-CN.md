@@ -156,10 +156,36 @@ git -c http.proxy=http://127.0.0.1:7890 clone https://github.com/cdllI/dsh-gee
 地址：按上面的写法带代理克隆，或者用 `api.github.com`、`raw.githubusercontent.com` 读文件——这两个域名
 解析是公网的。
 
+#### `git clone` 到不了 GitHub 时
+
+有些本地代理把 `github.com` 的 DNS 直接答成 `127.0.0.1`，`git clone` 直接失败，加 `-c http.proxy` 也没用。
+tarball 端点通常还能通：
+
+```bash
+curl -L -o dsh-gee.tar.gz https://codeload.github.com/cdllI/dsh-gee/tar.gz/refs/heads/main
+tar -xzf dsh-gee.tar.gz     # 得到 dsh-gee-main/，内容一致，但没有 git 历史
+```
+
 然后在插件管理器里 **安装 bundle**，路径填 `<克隆目录>/dsh-gee` 的绝对路径，或者让 agent 调
 `install_bundle`。它改的是 profile，需要一次完全权限的审批。
 
-**不要手工改 profile 里的 `cordis.patch.yml` 或 `package.json`**；缩进错一格，profile 就起不来了。
+**不要手工改 `cordis.patch.yml`**；缩进错一格，profile 就起不来了。
+
+#### 没有插件管理器工具时
+
+只有 shell 的 agent 可以走 CLI（`web` profile 可以由 CLI 管理；`desktop` 归桌面应用所有）：
+
+```bash
+dsh plugin --profile web add file:/绝对路径/dsh-gee-main/dsh-gee
+```
+
+这条只加了依赖；bundle 还要列进 `$DSH_HOME/profiles/web/package.json` 里的 `dsh.profile.bundles`：
+
+```json
+{ "dsh": { "profile": { "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "@local/dsh-gee"] } } }
+```
+
+重启前先验证组合：`dsh --profile web --dump-config | grep dsh-gee` 应该能看到插件的行。
 
 装完刷新页面，客户端那一半才会加载；左侧栏会出现 **GEE** 图标。
 
